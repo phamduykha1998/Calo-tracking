@@ -505,6 +505,15 @@ body::before{
 .dot-item.on .d{background:var(--violet-d);width:16px;border-radius:4px}
 
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+
+/* ═══ iPhone tai thỏ (notch) + home indicator ═══ */
+.page-inner{
+  padding-top:max(18px, calc(env(safe-area-inset-top) + 6px));
+  padding-bottom:max(110px, calc(env(safe-area-inset-bottom) + 104px));
+  padding-left:max(16px, env(safe-area-inset-left));
+  padding-right:max(16px, env(safe-area-inset-right));
+}
+.dots{bottom:max(18px, calc(env(safe-area-inset-bottom) + 10px))}
 </style>
 </head>
 <body>

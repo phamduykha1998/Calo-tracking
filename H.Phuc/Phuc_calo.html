@@ -443,6 +443,61 @@ body{
 .toast.show{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
 
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+
+/* ══════════════════════════════════════════════════════════════
+   BỔ SUNG — biến màu + class mà app.js render cần (trước đây thiếu
+   nên vòng calo / thanh phân tích bị dồn cục, mất khoảng trắng).
+   ══════════════════════════════════════════════════════════════ */
+:root{
+  --cy:#00D4FF; --gr:#38EF7D; --am:#FBBF24; --rd:#F43F5E;
+  --indigo:#818CF8; --flame:#B450FF;
+  --t2:#A8C2E0; --t3:#6B89AE; --t4:#3D5A82; --s3:#3D5A82;
+}
+
+/* Vòng calo (donut + cột thống kê) */
+.ring-block{display:flex;align-items:center;gap:16px;padding:16px}
+.ring-rel{position:relative;width:86px;height:86px;flex:0 0 86px}
+.ring-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.ring-mid .big{font-family:var(--display);font-size:18px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.ring-mid .sm{font-size:8.5px;color:var(--t3);margin-top:2px;text-transform:uppercase;letter-spacing:.06em}
+.ring-stats{flex:1;min-width:0;display:flex;flex-direction:column;gap:9px}
+.rs{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.rs-l{font-size:11px;color:var(--t3)}
+.rs-v{font-family:var(--mono);font-size:13px;font-weight:600;white-space:nowrap}
+.barline{height:3px;background:rgba(255,255,255,.07);border-radius:99px;margin-top:5px;overflow:hidden}
+.barline i{display:block;height:100%;border-radius:99px}
+
+/* Khối "Phân tích nhanh" — thanh Nạp/Đốt/MT */
+.charts{display:flex;flex-direction:column;gap:10px}
+.mbw{display:flex;flex-direction:column;gap:7px;margin-top:4px}
+.mb{display:flex;align-items:center;gap:8px}
+.mb-k{flex:0 0 34px;font-family:var(--mono);font-size:10px;font-weight:700;text-transform:uppercase}
+.mb-t{flex:1;height:6px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden}
+.mb-f{height:100%;border-radius:99px}
+.mb-v{flex:0 0 auto;min-width:46px;text-align:right;font-family:var(--mono);font-size:11px;font-weight:600}
+.cnote{font-family:var(--mono);font-size:11px;font-weight:600;margin-top:7px}
+
+/* Pills macro P/F/C trên từng món */
+.mpills{display:flex;gap:5px;margin-top:4px}
+.mp{font-family:var(--mono);font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:99px;background:rgba(255,255,255,.06)}
+.mp.p{color:var(--cy)} .mp.f{color:var(--am)} .mp.c{color:var(--gr)}
+
+/* Trang 2 — phụ */
+.p2-warns{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.p2-lh{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.p2-edit{font-family:var(--mono);font-size:10px;color:var(--cy);cursor:pointer}
+
+/* ══════════════════════════════════════════════════════════════
+   iPhone TAI THỎ (notch / Dynamic Island) + home indicator —
+   chừa lề an toàn khi cài như app toàn màn hình.
+   ══════════════════════════════════════════════════════════════ */
+.inner{
+  padding-top:max(16px, calc(env(safe-area-inset-top) + 6px));
+  padding-bottom:max(92px, calc(env(safe-area-inset-bottom) + 88px));
+  padding-left:max(14px, env(safe-area-inset-left));
+  padding-right:max(14px, env(safe-area-inset-right));
+}
+.dots{bottom:max(18px, calc(env(safe-area-inset-bottom) + 10px))}
 </style>
 </head>
 <body>
