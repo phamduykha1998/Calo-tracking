@@ -1,0 +1,15 @@
+# Dependencies (tải lại được bằng npm install — KHÔNG up lên GitHub)
+node_modules/
+
+# Database server-side sinh ra khi chạy (bản relational tham khảo)
+server/db/*.db
+server/db/*.db-wal
+server/db/*.db-shm
+
+# Cấu hình máy cá nhân / trình soạn thảo (không cần đẩy lên)
+**/settings.local.json
+.vscode/
+
+# Linh tinh hệ điều hành
+.DS_Store
+Thumbs.db

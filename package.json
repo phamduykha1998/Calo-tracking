@@ -1,0 +1,17 @@
+{
+  "name": "vital-tracking",
+  "version": "1.0.0",
+  "description": "Hệ theo dõi calo & vóc dáng VITAL — backend SQLite (zero-dependency)",
+  "scripts": {
+    "migrate": "node server/db/migrate.js",
+    "seed": "node server/db/seed.js",
+    "setup": "node server/db/migrate.js && node server/db/seed.js",
+    "start": "node server/server.js"
+  },
+  "devDependencies": {
+    "xlsx": "^0.18.5"
+  },
+  "dependencies": {
+    "sql.js": "^1.14.1"
+  }
+}
