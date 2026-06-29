@@ -514,8 +514,9 @@ body::before{
   padding-right:max(16px, env(safe-area-inset-right));
 }
 .dots{bottom:max(18px, calc(env(safe-area-inset-bottom) + 10px))}
-/* Bàn phím: nâng sheet nhập lên trên bàn phím (--kb do keyboard-fix.js đặt) */
-.sheet{bottom:var(--kb, 0px)}
+/* Bàn phím: nâng sheet lên trên bàn phím + giới hạn cao để ô nhập (đầu sheet)
+   không bị đẩy khỏi màn; nội dung sheet tự cuộn (đã có overflow-y:auto). */
+.sheet{bottom:var(--kb, 0px); max-height:min(90vh, calc(100dvh - var(--kb, 0px) - 16px))}
 </style>
 </head>
 <body>

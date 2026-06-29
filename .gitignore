@@ -13,3 +13,6 @@ server/db/*.db-shm
 # Linh tinh hệ điều hành
 .DS_Store
 Thumbs.db
+
+# Công cụ chạy thử preview nội bộ (không cần trên GitHub)
+.claude/

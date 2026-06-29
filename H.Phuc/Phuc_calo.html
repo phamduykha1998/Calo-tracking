@@ -498,8 +498,10 @@ body{
   padding-right:max(14px, env(safe-area-inset-right));
 }
 .dots{bottom:max(18px, calc(env(safe-area-inset-bottom) + 10px))}
-/* Bàn phím: đẩy modal nhập lên đúng phía trên bàn phím (--kb do keyboard-fix.js đặt) */
+/* Bàn phím: nâng modal trên bàn phím + GIỚI HẠN cao để ô tìm (đỉnh modal) không bị
+   đẩy ra khỏi màn. Danh sách .mlist (đã overflow:auto) tự co và cuộn nội bộ. */
 .mov{padding-bottom:var(--kb, 0px); transition:opacity .26s, padding-bottom .22s ease}
+.modal{max-height:min(88vh, calc(100dvh - var(--kb, 0px) - 16px))}
 </style>
 </head>
 <body>
