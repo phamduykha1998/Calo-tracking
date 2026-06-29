@@ -514,6 +514,8 @@ body::before{
   padding-right:max(16px, env(safe-area-inset-right));
 }
 .dots{bottom:max(18px, calc(env(safe-area-inset-bottom) + 10px))}
+/* Bàn phím: nâng sheet nhập lên trên bàn phím (--kb do keyboard-fix.js đặt) */
+.sheet{bottom:var(--kb, 0px)}
 </style>
 </head>
 <body>
@@ -883,6 +885,7 @@ body::before{
 <!-- SQLite chạy trong trình duyệt (sql.js) + lớp lưu trữ dùng chung -->
 <script src="../vendor/sqljs/sql-wasm.js"></script>
 <script src="../shared/vital-sqlite.js"></script>
+<script src="../shared/keyboard-fix.js"></script>
 <script src="Anh_calo.js"></script>
 <script>
 /* ÉLYSÉE demo TẮT — Anh_calo.js render dữ liệu THẬT từ SQLite. Giữ lại để tham khảo. */
