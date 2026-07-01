@@ -1646,10 +1646,14 @@ function renderFoodSearch(q) {
     return;
   }
   var results = searchFood(q);
-  if (!results.length) { el.innerHTML = ''; return; }
+  if (!results.length) {
+    el.innerHTML = '<div style="padding:9px 12px;font-size:11.5px;color:var(--muted);font-family:var(--serif);line-height:1.5">Chưa có “'+esc(q.trim())+'” trong danh mục — nhập <b>kcal</b> rồi bấm <b>+</b> để tự thêm. Hệ thống sẽ nhớ món này cho lần sau.</div>';
+    return;
+  }
   el.innerHTML = results.map(function(f) {
+    var tag = CustomFoods && CustomFoods.isCustom(f) ? ' <span style="color:var(--violet-d);font-size:9px;font-weight:800">CỦA BẠN</span>' : '';
     return '<div class="food-result" data-fid="'+f.id+'" style="padding:9px 12px;border-radius:11px;background:var(--bg-2);cursor:pointer;display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">' +
-      '<span style="font-size:13px;color:var(--plum-soft)">'+esc(f.name)+'</span>' +
+      '<span style="font-size:13px;color:var(--plum-soft)">'+esc(f.name)+tag+'</span>' +
       '<span style="font-size:11px;color:var(--muted);font-family:var(--mono)">'+f.kcal+' kcal/'+(f.qty&&f.qty>1?f.qty:'')+f.unit+'</span>' +
       '</div>';
   }).join('');
@@ -1668,6 +1672,27 @@ function renderActSearch(q) {
       '<span style="font-size:11px;color:var(--muted);font-family:var(--mono)">~'+Math.round(a.met*weight*0.5)+' kcal/30min</span>' +
       '</div>';
   }).join('');
+}
+
+// ─── CUSTOM FOODS (món tự thêm — nhớ cho lần sau) ─────────
+function loadCustomFoods() {
+  if (!window.CustomFoods) return;
+  CustomFoods.load('anh').forEach(function(f) {
+    if (f && f.id && !FOOD_DB.some(function(x) { return x.id === f.id; })) FOOD_DB.push(f);
+  });
+}
+function rememberCustomFood(name, kcal, macros) {
+  if (!window.CustomFoods || !name) return;
+  var key = noTone(name);
+  var existing = FOOD_DB.find(function(f) { return CustomFoods.isCustom(f) && noTone(f.name) === key; });
+  var id = existing ? existing.id : CustomFoods.newId();
+  var cat = { id: id, name: name, kcal: kcal || 0,
+    protein: (macros && macros.protein) || 0, carb: (macros && macros.carb) || 0,
+    fat: (macros && macros.fat) || 0, fiber: (macros && macros.fiber) || 0,
+    sugar: (macros && macros.sugar) || 0, qty: 1, unit: (macros && macros.unit) || 'phần' };
+  CustomFoods.save('anh', cat);
+  var i = FOOD_DB.findIndex(function(x) { return x.id === id; });
+  if (i >= 0) FOOD_DB[i] = cat; else FOOD_DB.push(cat);
 }
 
 // ─── ADD FOOD ─────────────────────────────────────────────
@@ -1693,6 +1718,11 @@ function addFood() {
   } else {
     food = { name: name, kcal: kcal, protein: 0, carb: 0, fat: 0, fiber: 0, sugar: 0, qty: qty };
   }
+
+  // Nếu tên món chưa có trong danh mục → lưu lại để lần sau tự tìm được.
+  var known = FOOD_DB.find(function(f) { return noTone(f.name) === noTone(name); });
+  if (!known) rememberCustomFood(name, kcal, food);
+
   _selFood = null;
 
   S.todayLog.foods = S.todayLog.foods || [];
@@ -2053,6 +2083,7 @@ window.renderSyncView = renderSyncView;
 // ═══════════════════════════════════════════════════════════
 // Chờ SQLite (sql.js) nạp xong rồi mới đọc dữ liệu & render.
 VitalSQL.init({ user: 'anh' }).then(function () {
+  loadCustomFoods();   // nạp món tự thêm (đã lưu) vào danh mục để tìm lại được
   loadState();
   if (S.profile) {
     S.out = OB.build(S.profile, S.allLogs, S.todayLog);

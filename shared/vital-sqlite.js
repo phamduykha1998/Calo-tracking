@@ -33,6 +33,8 @@
     'CREATE TABLE IF NOT EXISTS logs      (user TEXT NOT NULL, date TEXT NOT NULL, json TEXT NOT NULL, PRIMARY KEY(user,date));',
     'CREATE TABLE IF NOT EXISTS snapshots (user TEXT NOT NULL, date TEXT NOT NULL, json TEXT NOT NULL, PRIMARY KEY(user,date));',
     'CREATE TABLE IF NOT EXISTS foods (id TEXT PRIMARY KEY, name TEXT, kcal REAL, protein REAL, carb REAL, fat REAL, fiber REAL, sugar REAL, serving REAL, unit TEXT, processed INTEGER);',
+    // Món do NGƯỜI DÙNG tự thêm (mỗi hồ sơ 1 danh mục riêng) → tìm lại được ở lần sau.
+    'CREATE TABLE IF NOT EXISTS custom_foods (user TEXT NOT NULL, id TEXT NOT NULL, json TEXT NOT NULL, PRIMARY KEY(user,id));',
     'CREATE TABLE IF NOT EXISTS activities (id TEXT PRIMARY KEY, name TEXT, met REAL, icon TEXT);',
     'CREATE INDEX IF NOT EXISTS idx_logs_user_date ON logs(user,date);',
     'CREATE INDEX IF NOT EXISTS idx_foods_name ON foods(name);'

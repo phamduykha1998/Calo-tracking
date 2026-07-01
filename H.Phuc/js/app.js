@@ -581,11 +581,31 @@ function setMeal(m) { fmMeal = m; if (fmSel) fmSel.meal = m; renderMealTabs(); i
 
 function renderFoods(q) {
   const list = searchFood(q);
-  $('fList').innerHTML = list.map(f =>
+  const term = (q || '').trim();
+  // Nút "tự thêm món" — luôn hiện khi đang gõ (để tạo món chưa có trong danh mục).
+  const addBtn = term
+    ? `<div class="qi qi-add" onclick="createFood($('fSearch').value)">
+        <div><div class="qi-n">➕ Tự thêm món “${esc(term)}”</div><div class="qi-p">Nhập số liệu của bạn — hệ thống sẽ nhớ cho lần sau</div></div>
+        <div class="qi-c" style="color:var(--lime)">Tạo</div>
+      </div>`
+    : '';
+  const rows = list.map(f =>
     `<div class="qi" onclick="pickFood('${f.id}')">
-      <div><div class="qi-n">${esc(f.name)}</div><div class="qi-p">${f.serving === 1 ? '1 ' + f.unit : f.serving + f.unit} · P${f.protein} F${f.fat} C${f.carb}${f.processed ? ' · chế biến sẵn' : ''}</div></div>
+      <div><div class="qi-n">${esc(f.name)}${CustomFoods && CustomFoods.isCustom(f) ? ' <span style="color:var(--lime);font-size:9px;font-weight:800">CỦA BẠN</span>' : ''}</div><div class="qi-p">${f.serving === 1 ? '1 ' + f.unit : f.serving + f.unit} · P${f.protein} F${f.fat} C${f.carb}${f.processed ? ' · chế biến sẵn' : ''}</div></div>
       <div class="qi-c" style="color:var(--cy)">${f.kcal} kcal</div>
-    </div>`).join('') || '<div class="empty">Không tìm thấy món nào</div>';
+    </div>`).join('');
+  $('fList').innerHTML = addBtn + (rows || (term ? '' : '<div class="empty">Gõ tên món để tìm hoặc tự thêm</div>'));
+}
+
+/* Tạo món MỚI do người dùng tự nhập (khi tìm không thấy). */
+function createFood(name) {
+  fmSel = {
+    id: CustomFoods.newId(), name: (name || '').trim() || 'Món mới',
+    unit: 'phần', serving: 1, qty: 1, meal: fmMeal,
+    calories: 0, protein: 0, carb: 0, fat: 0, fiber: 0, sugar: 0, processed: 0
+  };
+  fmIdx = null;
+  renderFoodEditor();
 }
 
 function pickFood(id) {
@@ -611,9 +631,16 @@ function renderFoodEditor() {
   v.style.display = 'block';
   const f = fmSel, q = f.qty || 1;
   const per = f.unit === 'g' ? `${f.serving}g` : `1 ${f.unit}`;
+  const isCustom = CustomFoods && CustomFoods.isCustom(f);
+  const nameBlock = isCustom
+    ? `<div class="ed-grid" style="grid-template-columns:2fr 1fr;margin-bottom:8px">
+        <div class="fi"><label>Tên món</label><input type="text" value="${esc(f.name)}" oninput="fmName(this.value)"></div>
+        <div class="fi"><label>Đơn vị</label><input type="text" value="${esc(f.unit)}" oninput="fmUnit(this.value)"></div>
+      </div>`
+    : `<div class="ed-name">${esc(f.name)} <span class="ed-sub">· giá trị cho ${per}</span></div>`;
   v.innerHTML = `
-    <div class="ed-name">${esc(f.name)} <span class="ed-sub">· giá trị cho ${per}</span></div>
-    <div class="ed-note">Thông số lấy từ dữ liệu định sẵn — bạn có thể sửa từng ô cho đúng phần ăn thật.</div>
+    ${nameBlock}
+    <div class="ed-note">${isCustom ? 'Món của bạn — nhập số liệu cho <b>1 ' + esc(f.unit) + '</b>. Hệ thống sẽ nhớ để lần sau tìm lại được.' : 'Thông số lấy từ dữ liệu định sẵn — bạn có thể sửa từng ô cho đúng phần ăn thật.'}</div>
     <div class="mtabs">${MEALS.map(m => `<div class="mtab ${m === f.meal ? 'on' : ''}" onclick="setMeal('${m}')">${m}</div>`).join('')}</div>
     <div class="qty">
       <button class="qb" onclick="fmQty(-0.5)">−</button>
@@ -651,8 +678,24 @@ function fmField(k, val) {
   $('fmTotK').textContent = fmtK(fmSel.calories * q) + ' kcal';
   $('fmTotM').textContent = `P${Math.round(fmSel.protein * q)} · F${Math.round(fmSel.fat * q)} · C${Math.round(fmSel.carb * q)} · đường ${Math.round((fmSel.sugar || 0) * q)}g`;
 }
+function fmName(val) { fmSel.name = String(val || '').trim(); }
+function fmUnit(val) { fmSel.unit = String(val || '').trim() || 'phần'; }
+
+/* Lưu / cập nhật món tự thêm vào danh mục (để nhớ cho lần sau). */
+function rememberCustomFood(f) {
+  if (!window.CustomFoods || !CustomFoods.isCustom(f)) return;
+  const cat = {
+    id: f.id, name: f.name || 'Món mới', unit: f.unit || 'phần', serving: f.serving || 1,
+    kcal: f.calories || 0, protein: f.protein || 0, carb: f.carb || 0, fat: f.fat || 0,
+    fiber: f.fiber || 0, sugar: f.sugar || 0, processed: f.processed || 0
+  };
+  CustomFoods.save('phuc', cat);
+  const i = window.FOOD_DB.findIndex(x => x.id === cat.id);
+  if (i >= 0) window.FOOD_DB[i] = cat; else window.FOOD_DB.push(cat);
+}
 function fmApply() {
   if (!fmSel) return;
+  rememberCustomFood(fmSel);          // món tự thêm → lưu vào danh mục để nhớ
   if (!LOG.foods) LOG.foods = [];
   if (fmIdx != null) LOG.foods[fmIdx] = fmSel;
   else LOG.foods.push(fmSel);
@@ -939,7 +982,14 @@ function renderSyncView() {
   } catch(e) { el.style.display = 'none'; }
 }
 
+/* Nạp món TỰ THÊM (đã lưu) vào danh mục trong RAM để tìm lại được. */
+function loadCustomFoods() {
+  if (!window.CustomFoods || !window.FOOD_DB) return;
+  const have = new Set(window.FOOD_DB.map(f => f.id));
+  CustomFoods.load('phuc').forEach(f => { if (f && f.id && !have.has(f.id)) window.FOOD_DB.push(f); });
+}
+
 /* boot — chờ SQLite (sql.js) nạp xong rồi mới render từ DB thật */
 VitalSQL.init({ user: 'phuc' })
-  .then(() => { refresh(); renderSyncView(); })
+  .then(() => { loadCustomFoods(); refresh(); renderSyncView(); })
   .catch((e) => { console.error('Không khởi tạo được SQLite:', e); refresh(); });
