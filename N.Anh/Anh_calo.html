@@ -508,7 +508,7 @@ body::before{
 
 /* ═══ iPhone tai thỏ (notch) + home indicator ═══ */
 .page-inner{
-  padding-top:max(18px, calc(env(safe-area-inset-top) + 6px));
+  padding-top:max(56px, calc(env(safe-area-inset-top) + 52px)); /* chừa chỗ nút quay lại */
   padding-bottom:max(110px, calc(env(safe-area-inset-bottom) + 104px));
   padding-left:max(16px, env(safe-area-inset-left));
   padding-right:max(16px, env(safe-area-inset-right));
@@ -541,7 +541,7 @@ body::before{
         <div class="brand-text"><b>Élysée</b><small>Bien-être</small></div>
       </div>
       <div class="greet">
-        <div class="h">Bonjour, <b>Anh</b></div>
+        <div class="h" id="greet">Chào, <b>Ngọc Anh</b></div>
         <div class="d" id="today">—</div>
       </div>
     </div>
@@ -555,7 +555,7 @@ body::before{
       </div>
       <div class="affirm-text" id="affirmText">Hôm nay bạn đã <em>đủ tốt</em> rồi — cơ thể đang cảm ơn bạn vì đã chăm mỗi ngày.</div>
       <div class="affirm-by">
-        <div class="who">Dành riêng cho <b>Anh</b> · <span id="affirmDate">17.06</span></div>
+        <div class="who">Dành riêng cho <b>Ngọc Anh</b> · <span id="affirmDate">17.06</span></div>
         <button class="refresh" aria-label="Đổi lời nhắn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
         </button>
@@ -887,6 +887,7 @@ body::before{
 <script src="../vendor/sqljs/sql-wasm.js"></script>
 <script src="../shared/vital-sqlite.js"></script>
 <script src="../shared/keyboard-fix.js"></script>
+<script src="../shared/nav-home.js"></script>
 <script src="Anh_calo.js"></script>
 <script>
 /* ÉLYSÉE demo TẮT — Anh_calo.js render dữ liệu THẬT từ SQLite. Giữ lại để tham khảo. */

@@ -816,7 +816,7 @@ function obDemo() {
   DB.clearAll();
   const today = DB.today();
   const start = isoAddDays(today, -13);
-  const prof = { name: 'Phúc', age: 29, height: 175, gender: 'male', weight_start: 80.0, weight_goal: 75.0, activity_level: 'light', goal_type: 'lose_fat', deadline_days: 90, start_date: start };
+  const prof = { name: 'Hồng Phúc', age: 29, height: 175, gender: 'male', weight_start: 80.0, weight_goal: 75.0, activity_level: 'light', goal_type: 'lose_fat', deadline_days: 90, start_date: start };
 
   // thực đơn: H = đủ protein, B/C = thiếu protein (5 ngày cuối → Engine 6 bắt rủi ro)
   const H = [['pho_bo_tai', 'Sáng'], ['ca_phe_den_da', 'Sáng'], ['com_ga_hai_nam', 'Trưa'], ['uc_ga_hap_ap_chao_khong_dau', 'Tối'], ['com_trang', 'Tối'], ['salad_uc_ga', 'Tối'], ['trung_chien_op_la', 'Phụ']];
@@ -874,7 +874,7 @@ function exportSync() {
     schema: 'vital.sync.v1',
     owner: 'phuc',
     exportedAt: new Date().toISOString(),
-    profile: p ? { name: p.name || 'Phúc', age: p.age, height: p.height, weight: p.weight_start } : null,
+    profile: p ? { name: p.name || 'Hồng Phúc', age: p.age, height: p.height, weight: p.weight_start } : null,
     logs: logs.map(l => ({
       date: l.date,
       weight: l.weight_morning ?? null,

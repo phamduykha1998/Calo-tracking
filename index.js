@@ -2,6 +2,16 @@
 (function () {
 'use strict';
 
+/* ─── Chạy lại hiệu ứng fade-in khi quay về từ bộ nhớ đệm (nút back) ─── */
+window.addEventListener('pageshow', function (e) {
+  if (!e.persisted) return;               // chỉ khi trang được khôi phục từ bfcache
+  var sc = document.getElementById('scene');
+  if (!sc) return;
+  sc.style.animation = 'none';
+  void sc.offsetWidth;                     // ép trình duyệt "reflow" để reset animation
+  sc.style.animation = '';
+});
+
 /* ─── Lời chào ─── */
 var GREET_KEY = 'vital_last_user';
 var lastUser  = localStorage.getItem(GREET_KEY);
@@ -165,7 +175,7 @@ var TOTAL_DASH = 138.2;
 
 function navigate(who, href) {
   localStorage.setItem(GREET_KEY, who);
-  var name = who === 'phuc' ? 'Phúc' : 'Ngọc Anh';
+  var name = who === 'phuc' ? 'Hồng Phúc' : 'Ngọc Anh';
   if (loaderName) loaderName.textContent = name;
   if (loader) loader.classList.add('show');
 

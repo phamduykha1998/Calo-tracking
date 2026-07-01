@@ -1435,10 +1435,10 @@ function emptyRow() {
 // ─── RENDER ALL ────────────────────────────────────────────
 function renderAll() {
   var h = new Date().getHours();
-  var name = (S.profile && S.profile.name) ? S.profile.name : 'Bạn';
+  var name = (S.profile && S.profile.name) ? S.profile.name : 'Ngọc Anh';
   var greet = $$('greet');
-  if (greet) greet.textContent =
-    (h<11?'Chào buổi sáng':h<14?'Chào buổi trưa':h<18?'Chào buổi chiều':'Chào buổi tối') + ', ' + name;
+  if (greet) greet.innerHTML =
+    (h<11?'Chào buổi sáng':h<14?'Chào buổi trưa':h<18?'Chào buổi chiều':'Chào buổi tối') + ', <b>' + esc(name) + '</b>';
 
   var td = $$('today');
   if (td) {
