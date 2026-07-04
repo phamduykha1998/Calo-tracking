@@ -22,7 +22,7 @@ create table if not exists public.profiles (
   email       text,                                   -- chỉ để hiển thị, không dùng để đăng nhập
   name        text not null,
   gender      text not null check (gender in ('male','female')),
-  partner_id  uuid references public.profiles(id),    -- "đối tác" — dùng để cho phép xem chéo (chỉ xem)
+  partner_id  uuid references public.profiles(id) on delete set null,  -- "đối tác" — xem chéo (chỉ xem); xoá người kia thì tự gỡ liên kết
   couple_id   uuid,                                    -- dự phòng mở rộng nhiều cặp sau này (chưa dùng)
   data        jsonb not null default '{}'::jsonb,      -- age/height/weight_start/weight_goal/goal_type/...
   created_at  timestamptz not null default now()
