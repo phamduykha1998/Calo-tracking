@@ -528,3 +528,130 @@ body {
   .ripple { animation: none; }
   #particles { display: none; }
 }
+
+/* =====================================================
+   AUTH — đăng nhập / tạo tài khoản (thay cho 2 thẻ chọn hồ sơ cũ)
+   ===================================================== */
+.authbox {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 6px 0;
+}
+.authtabs {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  border-radius: var(--r-pill);
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.06);
+}
+.authtab {
+  flex: 1;
+  text-align: center;
+  padding: 10px 0;
+  border-radius: var(--r-pill);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  cursor: pointer;
+  transition: background .2s, color .2s;
+  border: none;
+  background: none;
+}
+.authtab.on {
+  background: rgba(255,255,255,.09);
+  color: var(--ink);
+}
+.authform { display: none; flex-direction: column; gap: 12px; }
+.authform.on { display: flex; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.field input, .field select {
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 12px;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  padding: 12px 14px;
+  outline: none;
+  width: 100%;
+}
+.field input:focus, .field select:focus {
+  border-color: rgba(255,255,255,.32);
+}
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.gender-pick { display: flex; gap: 8px; }
+.gender-opt {
+  flex: 1;
+  text-align: center;
+  padding: 11px 0;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.04);
+  color: var(--ink-soft);
+  transition: .15s;
+}
+.gender-opt.sel { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.3); color: #fff; }
+.btn-auth {
+  width: 100%;
+  padding: 14px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 14px;
+  color: #06101D;
+  background: linear-gradient(120deg, var(--phuc-1), var(--anh-1));
+  transition: transform .15s;
+}
+.btn-auth:active { transform: scale(.98); }
+.btn-auth:disabled { opacity: .5; cursor: default; transform: none; }
+.auth-msg {
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 10px 12px;
+  border-radius: 10px;
+  display: none;
+}
+.auth-msg.show { display: block; }
+.auth-msg.err { background: rgba(244,63,94,.12); border: 1px solid rgba(244,63,94,.3); color: #FCA5A5; }
+.auth-msg.ok  { background: rgba(52,211,153,.12); border: 1px solid rgba(52,211,153,.3); color: #6EE7B7; }
+
+/* ── Đã đăng nhập: thẻ đi tới dashboard của mình + xem đối tác ── */
+.who-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0 2px;
+}
+.who-name { font-family: var(--font-serif-phuc); font-size: 20px; }
+.who-actions { display: flex; flex-direction: column; gap: 10px; }
+.btn-ghost-auth {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.04);
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}

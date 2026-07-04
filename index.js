@@ -1,90 +1,34 @@
-/* VITAL · index.js — Logic màn hình chọn hồ sơ */
+/* VITAL · index.js — Đăng nhập / Tạo tài khoản (Supabase Auth) */
 (function () {
 'use strict';
 
 /* ─── Chạy lại hiệu ứng fade-in khi quay về từ bộ nhớ đệm (nút back) ─── */
 window.addEventListener('pageshow', function (e) {
-  if (!e.persisted) return;               // chỉ khi trang được khôi phục từ bfcache
+  if (!e.persisted) return;
   var sc = document.getElementById('scene');
   if (!sc) return;
   sc.style.animation = 'none';
-  void sc.offsetWidth;                     // ép trình duyệt "reflow" để reset animation
+  void sc.offsetWidth;
   sc.style.animation = '';
 });
 
-/* ─── Lời chào ─── */
-var GREET_KEY = 'vital_last_user';
-var lastUser  = localStorage.getItem(GREET_KEY);
-
-function greeting() {
+/* ─── Lời chào theo giờ ─── */
+(function greeting() {
   var h = new Date().getHours();
   var g = h < 11 ? 'Chào buổi sáng' : h < 14 ? 'Chào buổi trưa' : h < 18 ? 'Chào buổi chiều' : 'Chào buổi tối';
   var el = document.getElementById('greeting');
-  if (!el) return;
-  el.textContent = g;
-}
-greeting();
+  if (el) el.textContent = g;
+})();
 
-/* ─── Badge streak & cân (đọc TỪ SQLite — dùng chung VitalSQL) ─── */
-function todayStr() {
-  var d = new Date();
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-}
-function addDays(s, n) {
-  var d = new Date(s + 'T00:00'); d.setDate(d.getDate() + n);
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-}
-function userStreak(user) {
-  try {
-    var rows = window.VitalSQL.all('SELECT date,json FROM logs WHERE user=?', [user]);
-    var set = {};
-    rows.forEach(function (r) { try { var l = JSON.parse(r.json); if (l.foods && l.foods.length) set[r.date] = 1; } catch (e) {} });
-    var d = todayStr(), n = 0;
-    while (set[d]) { n++; d = addDays(d, -1); }
-    return n;
-  } catch (e) { return 0; }
-}
-function userWeight(user, field) {
-  try {
-    var rows = window.VitalSQL.all('SELECT json FROM logs WHERE user=? ORDER BY date', [user]);
-    for (var i = rows.length - 1; i >= 0; i--) { var l = JSON.parse(rows[i].json); if (l[field]) return l[field]; }
-    return null;
-  } catch (e) { return null; }
-}
-function renderBadges() {
-  var ps = userStreak('phuc'), as = userStreak('anh');
-  var pw = userWeight('phuc', 'weight_morning'), aw = userWeight('anh', 'weight');
-  var spEl = document.getElementById('streak-phuc');
-  if (spEl) spEl.innerHTML = (ps > 0 ? '🔥 ' + ps + ' ngày<br>' : '') + (pw ? pw.toFixed(1) + ' kg' : '');
-  var saEl = document.getElementById('streak-anh');
-  if (saEl) saEl.innerHTML = (as > 0 ? '🔥 ' + as + ' ngày<br>' : '') + (aw ? aw.toFixed(1) + ' kg' : '');
-}
-if (window.VitalSQL) { window.VitalSQL.init().then(renderBadges).catch(function () {}); }
-
-/* ─── Tô sáng hồ sơ mở gần nhất ─── */
-if (lastUser) {
-  var card = document.getElementById('card-' + lastUser);
-  if (card) card.style.outline = '2px solid rgba(255,255,255,.18)';
-}
-
-/* ─── Canvas hạt nền ─── */
+/* ─── Canvas hạt nền (thuần trang trí, giữ nguyên hiệu ứng cũ) ─── */
 var canvas = document.getElementById('particles');
-var ctx    = canvas && canvas.getContext('2d');
+var ctx = canvas && canvas.getContext('2d');
 var particles = [];
-
-function initCanvas() {
-  if (!canvas) return;
-  canvas.width  = canvas.offsetWidth;
-  canvas.height = canvas.offsetHeight;
-}
+function initCanvas() { if (!canvas) return; canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; }
 function mkParticle() {
   return {
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
-    r: Math.random() * 1.5 + 0.4,
-    vx: (Math.random() - 0.5) * 0.3,
-    vy: (Math.random() - 0.5) * 0.3,
-    alpha: Math.random() * 0.4 + 0.1
+    x: Math.random() * canvas.width, y: Math.random() * canvas.height, r: Math.random() * 1.5 + 0.4,
+    vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3, alpha: Math.random() * 0.4 + 0.1
   };
 }
 function initParticles() {
@@ -122,64 +66,15 @@ if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
   });
 }
 
-/* ─── Nghiêng 3D khi rê chuột ─── */
-var cards = document.querySelectorAll('.card');
-cards.forEach(function (card) {
-  card.addEventListener('mousemove', function (e) {
-    var rect = card.getBoundingClientRect();
-    var cx = rect.left + rect.width / 2;
-    var cy = rect.top  + rect.height / 2;
-    var dx = (e.clientX - cx) / (rect.width / 2);
-    var dy = (e.clientY - cy) / (rect.height / 2);
-    card.style.transform = 'perspective(800px) rotateY(' + (dx * 7) + 'deg) rotateX(' + (-dy * 4) + 'deg) translateZ(8px)';
-  });
-  card.addEventListener('mouseleave', function () {
-    card.style.transform = '';
-  });
-});
-
-/* ─── Gợn sóng khi bấm ─── */
-function spawnRipple(card, e) {
-  var rect = card.getBoundingClientRect();
-  var x = e.clientX - rect.left;
-  var y = e.clientY - rect.top;
-  var size = Math.max(rect.width, rect.height);
-  var layer = card.querySelector('.ripple-layer');
-  if (!layer) return;
-  var rip = document.createElement('div');
-  rip.className = 'ripple';
-  rip.style.cssText = 'width:' + size + 'px;height:' + size + 'px;left:' + (x - size / 2) + 'px;top:' + (y - size / 2) + 'px';
-  layer.appendChild(rip);
-  rip.addEventListener('animationend', function () { rip.remove(); });
-}
-
-/* ─── Prefetch khi rê vào ─── */
-var prefetched = {};
-function prefetch(href) {
-  if (prefetched[href]) return;
-  prefetched[href] = true;
-  var link = document.createElement('link');
-  link.rel = 'prefetch'; link.href = href;
-  document.head.appendChild(link);
-}
-cards.forEach(function (card) {
-  card.addEventListener('mouseenter', function () { prefetch(card.href); });
-  card.addEventListener('touchstart', function () { prefetch(card.href); }, { passive: true });
-});
-
-/* ─── Điều hướng kèm hiệu ứng loading ─── */
-var loader     = document.getElementById('loader');
-var loaderArc  = document.getElementById('loader-arc');
+/* ─── Loader / điều hướng có hiệu ứng ─── */
+var loader = document.getElementById('loader');
+var loaderArc = document.getElementById('loader-arc');
 var loaderName = document.getElementById('loader-name');
 var TOTAL_DASH = 138.2;
-
-function navigate(who, href) {
-  localStorage.setItem(GREET_KEY, who);
-  var name = who === 'phuc' ? 'Hồng Phúc' : 'Ngọc Anh';
+function navigate(name, href) {
   if (loaderName) loaderName.textContent = name;
   if (loader) loader.classList.add('show');
-
-  var start = null, dur = 1500;
+  var start = null, dur = 900;
   function step(ts) {
     if (!start) start = ts;
     var pct = Math.min((ts - start) / dur, 1);
@@ -191,14 +86,133 @@ function navigate(who, href) {
   requestAnimationFrame(step);
 }
 
-cards.forEach(function (card) {
-  card.addEventListener('click', function (e) {
-    e.preventDefault();
-    spawnRipple(card, e);
-    var who  = card.dataset.who;
-    var href = card.href;
-    navigate(who, href);
-  });
+/* ─── Supabase helpers ─── */
+function sb() { return window.supabaseClient; }
+function dashboardOf(gender) { return gender === 'male' ? 'H.Phuc/Phuc_calo.html' : 'N.Anh/Anh_calo.html'; }
+
+var authMsgEl = document.getElementById('authMsg');
+function showMsg(text, kind) {
+  if (!authMsgEl) return;
+  authMsgEl.textContent = text;
+  authMsgEl.className = 'auth-msg show ' + (kind || 'err');
+}
+function clearMsg() {
+  if (!authMsgEl) return;
+  authMsgEl.className = 'auth-msg';
+  authMsgEl.textContent = '';
+}
+
+/* ─── Tabs đăng nhập / đăng ký ─── */
+var tabLogin = document.getElementById('tabLogin');
+var tabRegister = document.getElementById('tabRegister');
+var formLogin = document.getElementById('formLogin');
+var formRegister = document.getElementById('formRegister');
+function showTab(which) {
+  clearMsg();
+  tabLogin.classList.toggle('on', which === 'login');
+  tabRegister.classList.toggle('on', which === 'register');
+  formLogin.classList.toggle('on', which === 'login');
+  formRegister.classList.toggle('on', which === 'register');
+}
+tabLogin.addEventListener('click', function () { showTab('login'); });
+tabRegister.addEventListener('click', function () { showTab('register'); });
+
+/* ─── Chọn giới tính khi đăng ký ─── */
+var regGender = 'male';
+var genderPick = document.getElementById('genderPick');
+genderPick.addEventListener('click', function (e) {
+  var opt = e.target.closest('.gender-opt');
+  if (!opt) return;
+  genderPick.querySelectorAll('.gender-opt').forEach(function (o) { o.classList.remove('sel'); });
+  opt.classList.add('sel');
+  regGender = opt.dataset.v;
 });
+
+/* ─── Submit: Đăng nhập ─── */
+formLogin.addEventListener('submit', function (e) {
+  e.preventDefault();
+  clearMsg();
+  var email = document.getElementById('loginEmail').value.trim();
+  var password = document.getElementById('loginPassword').value;
+  var btn = document.getElementById('btnLogin');
+  btn.disabled = true;
+  sb().auth.signInWithPassword({ email: email, password: password })
+    .then(function (res) {
+      if (res.error) { showMsg('Sai email hoặc mật khẩu.'); return null; }
+      return sb().from('profiles').select('*').eq('id', res.data.user.id).maybeSingle();
+    })
+    .then(function (profRes) {
+      if (!profRes) return; // đã báo lỗi ở bước trên
+      if (profRes.error || !profRes.data) { showMsg('Đăng nhập được nhưng chưa có hồ sơ — liên hệ người quản trị.'); return; }
+      navigate(profRes.data.name || 'Bạn', dashboardOf(profRes.data.gender));
+    })
+    .catch(function (err) { showMsg('Lỗi kết nối: ' + err.message); })
+    .finally(function () { btn.disabled = false; });
+});
+
+/* ─── Submit: Tạo tài khoản ─── */
+formRegister.addEventListener('submit', function (e) {
+  e.preventDefault();
+  clearMsg();
+  var name = document.getElementById('regName').value.trim();
+  var email = document.getElementById('regEmail').value.trim();
+  var password = document.getElementById('regPassword').value;
+  var btn = document.getElementById('btnRegister');
+  if (!name) { showMsg('Nhập tên hiển thị đã nhé.'); return; }
+  btn.disabled = true;
+  sb().auth.signUp({ email: email, password: password })
+    .then(function (res) {
+      if (res.error) { showMsg(res.error.message); return null; }
+      if (!res.data.user) { showMsg('Đăng ký thành công — kiểm tra email để xác nhận rồi quay lại đăng nhập.', 'ok'); return null; }
+      return sb().from('profiles').insert({ id: res.data.user.id, email: email, name: name, gender: regGender })
+        .then(function (insertRes) {
+          if (insertRes.error) { showMsg('Tạo tài khoản xong nhưng lưu hồ sơ lỗi: ' + insertRes.error.message); return; }
+          navigate(name, dashboardOf(regGender));
+        });
+    })
+    .catch(function (err) { showMsg('Lỗi kết nối: ' + err.message); })
+    .finally(function () { btn.disabled = false; });
+});
+
+/* ─── Đã đăng nhập sẵn (mở lại trang index) — hiện thẻ vào thẳng dashboard ─── */
+function checkExistingSession() {
+  if (!sb()) return;
+  sb().auth.getSession().then(function (s) {
+    var session = s.data && s.data.session;
+    if (!session) return;
+    return sb().from('profiles').select('*').eq('id', session.user.id).maybeSingle().then(function (profRes) {
+      if (profRes.error || !profRes.data) return;
+      var me = profRes.data;
+
+      document.getElementById('authBox').style.display = 'none';
+      document.getElementById('heroTitle').innerHTML = 'Chào mừng<br>trở lại';
+      document.getElementById('heroNote').textContent = 'Bạn đã đăng nhập — vào thẳng trang của mình hoặc xem trang đối tác.';
+      var whoCard = document.getElementById('whoCard');
+      whoCard.style.display = 'flex';
+      document.getElementById('whoName').textContent = me.name || 'bạn';
+
+      document.getElementById('btnGoMine').addEventListener('click', function () {
+        navigate(me.name || 'Bạn', dashboardOf(me.gender));
+      });
+
+      if (me.partner_id) {
+        var partnerBtn = document.getElementById('btnGoPartner');
+        partnerBtn.style.display = 'block';
+        partnerBtn.addEventListener('click', function () {
+          sb().from('profiles').select('*').eq('id', me.partner_id).maybeSingle().then(function (pRes) {
+            var pName = (pRes.data && pRes.data.name) || 'đối tác';
+            var pGender = (pRes.data && pRes.data.gender) || (me.gender === 'male' ? 'female' : 'male');
+            navigate(pName, dashboardOf(pGender) + '?view=partner');
+          });
+        });
+      }
+
+      document.getElementById('btnLogout').addEventListener('click', function () {
+        sb().auth.signOut().then(function () { window.location.reload(); });
+      });
+    });
+  }).catch(function () {});
+}
+checkExistingSession();
 
 })();

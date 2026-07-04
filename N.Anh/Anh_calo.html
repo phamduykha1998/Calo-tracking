@@ -754,8 +754,6 @@ body::before{
       </div>
     </div>
 
-    <!-- Sync view: dữ liệu của Phúc (ẩn nếu chưa nhập) -->
-    <div id="sync-view-phuc" style="display:none;margin-top:18px;background:var(--card);border:1px solid rgba(255,255,255,.8);border-radius:var(--r);padding:15px 16px 12px;box-shadow:var(--shadow-sm);backdrop-filter:blur(12px)"></div>
   </div></section>
 
 </div>
@@ -872,11 +870,7 @@ body::before{
       <input class="inp num" style="width:100%" id="in-p-deadline" type="number" inputmode="numeric" placeholder="12"></div>
     <button class="save" id="save-profile">Lưu hồ sơ</button>
     <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line)">
-      <div style="font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-mute);font-weight:700;margin-bottom:10px">Đồng bộ với Phúc</div>
-      <div style="display:flex;gap:8px">
-        <button onclick="exportSync()" style="flex:1;padding:11px 8px;border-radius:14px;border:1.5px solid var(--line-2);background:#fff;color:var(--ink-soft);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans)">⬆ Xuất dữ liệu</button>
-        <button onclick="importSync()" style="flex:1;padding:11px 8px;border-radius:14px;border:1.5px solid var(--line-2);background:#fff;color:var(--ink-soft);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans)">⬇ Nhận từ Phúc</button>
-      </div>
+      <a href="../H.Phuc/Phuc_calo.html?view=partner" style="display:block;text-align:center;text-decoration:none;padding:11px 8px;border-radius:14px;border:1.5px solid var(--line-2);background:#fff;color:var(--ink-soft);font-size:12px;font-weight:600;font-family:var(--sans)">Xem trang của Phúc (chỉ xem)</a>
     </div>
   </div>
 
@@ -884,8 +878,9 @@ body::before{
 </div>
 
 <!-- SQLite chạy trong trình duyệt (sql.js) + lớp lưu trữ dùng chung -->
-<script src="../vendor/sqljs/sql-wasm.js"></script>
-<script src="../shared/vital-sqlite.js"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="../shared/supabase-client.js"></script>
+<script src="../shared/vital-auth.js"></script>
 <script src="../shared/custom-foods.js"></script>
 <script src="../shared/keyboard-fix.js"></script>
 <script src="../shared/nav-home.js"></script>

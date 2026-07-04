@@ -64,9 +64,14 @@ function toast(m) {
 }
 
 /* ---------- vòng đời ---------- */
+function ro() { return !!window.VITAL_READONLY; }
+
 function refresh() {
   PROFILE = DB.getProfile();
-  if (!PROFILE) { $('ob').style.display = 'flex'; return; }
+  if (!PROFILE) {
+    if (ro()) { $('ob').style.display = 'none'; $('p1').innerHTML = '<div style="padding:60px 20px;text-align:center;color:var(--t3)">Đối tác chưa có dữ liệu.</div>'; $('p2').innerHTML = ''; return; }
+    $('ob').style.display = 'flex'; return;
+  }
   $('ob').style.display = 'none';
   LOG = DB.getTodayLog();
   OUT = OutputBuilder.build();
@@ -284,7 +289,7 @@ function renderP1() {
           ${ring(t.kcal / Math.max(1, o.targetKcal), 35, '#00D4FF', 8, 86)}
           ${ring(burn / Math.max(1, o.tdee), 25, '#38EF7D', 6, 86)}
         </svg>
-        <div class="ring-mid"><div class="big">${fmtK(remain)}</div><div class="sm">còn lại</div></div>
+        <div class="ring-mid"><div class="big">${fmtK(remain)}</div></div>
       </div>
       <div class="ring-stats">
         <div><div class="rs"><span class="rs-l">Nạp vào</span><span class="rs-v" style="color:var(--cy)">${fmtK(t.kcal)}</span></div><div class="barline"><i style="width:${Math.min(100, Math.round(t.kcal / Math.max(1, o.targetKcal) * 100))}%;background:var(--cy)"></i></div></div>
@@ -435,7 +440,7 @@ function renderP2() {
     ? LOG.foods.map((f, i) => {
       const q = f.qty || 1;
       const tag = f.processed || (f.sugar || 0) * q >= 20 ? 'Không tốt' : 'Lành mạnh';
-      return `<div class="li" onclick="openFoodEdit(${i})">
+      return `<div class="li" ${ro() ? 'style="cursor:default"' : `onclick="openFoodEdit(${i})"`}>
         <div><div class="li-n">${esc(f.name)}</div><div class="li-p">${esc(f.meal || '')} · ${esc(unitLabel(f))} · ${tag}</div></div>
         <div style="text-align:right"><div class="li-c" style="color:var(--cy)">${fmtK(f.calories * q)}</div>
         <div class="mpills"><span class="mp p">P${Math.round(f.protein * q)}</span><span class="mp f">F${Math.round(f.fat * q)}</span><span class="mp c">C${Math.round(f.carb * q)}</span></div></div>
@@ -446,7 +451,7 @@ function renderP2() {
   const actRows = (LOG.acts || []).length
     ? LOG.acts.map((a, i) => `<div class="li" style="cursor:default">
         <div><div class="li-n">${a.icon || '🏃'} ${esc(a.name)}</div><div class="li-p">${a.minutes} phút · MET ${a.met}</div></div>
-        <div style="display:flex;align-items:center;gap:8px"><span class="li-c" style="color:var(--gr)">−${fmtK(a.kcal)}</span><span class="li-x" onclick="removeAct(${i});event.stopPropagation()">✕</span></div>
+        <div style="display:flex;align-items:center;gap:8px"><span class="li-c" style="color:var(--gr)">−${fmtK(a.kcal)}</span>${ro() ? '' : `<span class="li-x" onclick="removeAct(${i});event.stopPropagation()">✕</span>`}</div>
       </div>`).join('')
     : '<div class="empty">Chưa có hoạt động — bấm tiêu đề để thêm</div>';
 
@@ -462,7 +467,7 @@ function renderP2() {
 
     <!-- NẠP -->
     <div class="card p2-card">
-      <div class="p2-head" onclick="openFood()">
+      <div class="p2-head" ${ro() ? 'style="cursor:default"' : 'onclick="openFood()"'}>
         <div style="flex:1;min-width:0">
           <div class="p2-type" style="color:var(--cy)"><span style="width:6px;height:6px;border-radius:50%;background:var(--cy);display:inline-block"></span>Nạp vào
             <span class="p2-edit"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span></div>
@@ -496,7 +501,7 @@ function renderP2() {
 
     <!-- ĐỐT -->
     <div class="card p2-card">
-      <div class="p2-head" onclick="openAct()">
+      <div class="p2-head" ${ro() ? 'style="cursor:default"' : 'onclick="openAct()"'}>
         <div style="flex:1;min-width:0">
           <div class="p2-type" style="color:var(--gr)"><span style="width:6px;height:6px;border-radius:50%;background:var(--gr);display:inline-block"></span>Đốt cháy
             <span class="p2-edit"><svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg></span></div>
@@ -537,23 +542,18 @@ function renderP2() {
         </div>
       </div>
       <div class="bd-grid">
-        <div class="fi"><label>Cân sáng (kg)</label><input id="bdW" type="number" step="0.1" value="${wv}" placeholder="${o.trendWeight.toFixed(1)}"></div>
-        <div class="fi"><label>Ngủ (giờ)</label><input id="bdS" type="number" step="0.5" value="${sv}" placeholder="7"></div>
-        <div class="fi"><label>Số bước</label><input id="bdSt" type="number" step="100" value="${stv}" placeholder="6000"></div>
+        <div class="fi"><label>Cân sáng (kg)</label><input id="bdW" type="number" step="0.1" value="${wv}" placeholder="${o.trendWeight.toFixed(1)}" ${ro() ? 'disabled' : ''}></div>
+        <div class="fi"><label>Ngủ (giờ)</label><input id="bdS" type="number" step="0.5" value="${sv}" placeholder="7" ${ro() ? 'disabled' : ''}></div>
+        <div class="fi"><label>Số bước</label><input id="bdSt" type="number" step="100" value="${stv}" placeholder="6000" ${ro() ? 'disabled' : ''}></div>
       </div>
-      <div style="padding:0 14px 14px"><button class="btn-pri" onclick="saveBody()">Lưu chỉ số hôm nay</button></div>
+      ${ro() ? '' : '<div style="padding:0 14px 14px"><button class="btn-pri" onclick="saveBody()">Lưu chỉ số hôm nay</button></div>'}
     </div>
 
+    ${ro() ? '' : `
     <div style="padding:0 14px 4px">
-      <div style="font-family:var(--mono);font-size:8px;text-transform:uppercase;color:var(--t4);letter-spacing:.07em;font-weight:600;margin-bottom:8px">Đồng bộ với Ngọc Anh</div>
-      <div class="btn-row">
-        <button class="btn-ghost" onclick="exportSync()">⬆ Xuất dữ liệu</button>
-        <button class="btn-ghost" onclick="importSync()">⬇ Nhận từ Ngọc Anh</button>
-      </div>
-    </div>
-    <div id="sync-view-anh" style="display:none;margin:0 14px 4px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:12px 14px 8px;font-size:12px;color:rgba(255,255,255,.8)"></div>
-    <div class="reset-link" onclick="resetAll()">Đặt lại toàn bộ dữ liệu</div>`;
-  renderSyncView();
+      <a class="btn-ghost" style="display:block;text-align:center;text-decoration:none" href="../N.Anh/Anh_calo.html?view=partner">Xem trang của Ngọc Anh (chỉ xem)</a>
+    </div>`}
+    ${ro() ? '' : '<div class="reset-link" onclick="resetAll()">Đặt lại toàn bộ dữ liệu</div>'}`;
 }
 
 /* ---------- FOOD MODAL ---------- */
@@ -564,6 +564,7 @@ function suggestMeal() {
   return h < 10 ? 'Sáng' : h < 14 ? 'Trưa' : h < 21 ? 'Tối' : 'Phụ';
 }
 function openFood() {
+  if (ro()) return;
   fmMeal = suggestMeal(); fmSel = null; fmIdx = null;
   $('fmTitle').textContent = 'Thêm món ăn';
   $('fmListView').style.display = 'flex';
@@ -689,12 +690,12 @@ function rememberCustomFood(f) {
     kcal: f.calories || 0, protein: f.protein || 0, carb: f.carb || 0, fat: f.fat || 0,
     fiber: f.fiber || 0, sugar: f.sugar || 0, processed: f.processed || 0
   };
-  CustomFoods.save('phuc', cat);
+  CustomFoods.save(cat);
   const i = window.FOOD_DB.findIndex(x => x.id === cat.id);
   if (i >= 0) window.FOOD_DB[i] = cat; else window.FOOD_DB.push(cat);
 }
 function fmApply() {
-  if (!fmSel) return;
+  if (ro() || !fmSel) return;
   rememberCustomFood(fmSel);          // món tự thêm → lưu vào danh mục để nhớ
   if (!LOG.foods) LOG.foods = [];
   if (fmIdx != null) LOG.foods[fmIdx] = fmSel;
@@ -705,7 +706,7 @@ function fmApply() {
   toast((fmIdx != null ? 'Đã cập nhật ' : 'Đã thêm ') + fmSel.name + ' · ' + fmtK(fmSel.calories * (fmSel.qty || 1)) + ' kcal');
 }
 function fmRemove() {
-  if (fmIdx == null) return;
+  if (ro() || fmIdx == null) return;
   const n = LOG.foods[fmIdx].name;
   LOG.foods.splice(fmIdx, 1);
   persist(); closeFood(); refresh();
@@ -716,6 +717,7 @@ function fmRemove() {
 let amSel = null;
 
 function openAct() {
+  if (ro()) return;
   amSel = null;
   $('amListView').style.display = 'flex';
   $('amEditView').style.display = 'none';
@@ -762,6 +764,7 @@ function amMinChange(val) {
   $('amKcal').value = amSel.kcal;
 }
 function amApply() {
+  if (ro()) return;
   if (!amSel || !amSel.minutes) { toast('Nhập thời gian đã nhé'); return; }
   if (!LOG.acts) LOG.acts = [];
   LOG.acts.push(amSel);
@@ -771,6 +774,7 @@ function amApply() {
   toast('Đã thêm ' + amSel.name + ' · −' + fmtK(amSel.kcal) + ' kcal');
 }
 function removeAct(i) {
+  if (ro()) return;
   const n = LOG.acts[i].name;
   LOG.acts.splice(i, 1);
   persist(); refresh();
@@ -779,6 +783,7 @@ function removeAct(i) {
 
 /* ---------- CƠ THỂ ---------- */
 function saveBody() {
+  if (ro()) return;
   const w = parseFloat($('bdW').value);
   const s = parseFloat($('bdS').value);
   const st = parseInt($('bdSt').value);
@@ -792,9 +797,9 @@ function saveBody() {
 }
 
 function resetAll() {
+  if (ro()) return;
   if (confirm('Xóa toàn bộ dữ liệu (hồ sơ + nhật ký)?')) {
-    DB.clearAll();
-    location.reload();
+    DB.clearAll().then(() => location.reload());
   }
 }
 
@@ -822,6 +827,7 @@ function obDelta() {
   } else el.textContent = '';
 }
 function obStart() {
+  if (ro()) return;
   const ws = parseFloat($('obWs').value), wg = parseFloat($('obWg').value);
   if (isNaN(ws) || isNaN(wg) || ws < 30 || wg < 30) { toast('Nhập cân nặng hiện tại và mục tiêu nhé'); return; }
   const p = {
@@ -855,8 +861,9 @@ function mkAct(id, min, w) {
   if (!a) return null;
   return { id: a.id, name: a.name, icon: a.icon, met: a.met, minutes: min, kcal: actKcal(a.met, w, min) };
 }
-function obDemo() {
-  DB.clearAll();
+async function obDemo() {
+  if (ro()) return;
+  await DB.clearAll();
   const today = DB.today();
   const start = isoAddDays(today, -13);
   const prof = { name: 'Hồng Phúc', age: 29, height: 175, gender: 'male', weight_start: 80.0, weight_goal: 75.0, activity_level: 'light', goal_type: 'lose_fat', deadline_days: 90, start_date: start };
@@ -909,87 +916,27 @@ function updateDots() {
 pager.addEventListener('scroll', () => requestAnimationFrame(updateDots), { passive: true });
 document.querySelectorAll('.dots .dot-i[data-go]').forEach(d => d.addEventListener('click', () => goTo(+d.dataset.go)));
 
-/* ---------- SYNC (vital.sync.v1) ---------- */
-function exportSync() {
-  const logs = DB.getLogs();
-  const p = DB.getProfile();
-  const data = {
-    schema: 'vital.sync.v1',
-    owner: 'phuc',
-    exportedAt: new Date().toISOString(),
-    profile: p ? { name: p.name || 'Hồng Phúc', age: p.age, height: p.height, weight: p.weight_start } : null,
-    logs: logs.map(l => ({
-      date: l.date,
-      weight: l.weight_morning ?? null,
-      foods: (l.foods || []).map(f => ({
-        name: f.name, kcal: f.calories || 0,
-        protein: f.protein || 0, carb: f.carb || 0, fat: f.fat || 0, qty: f.qty || 1
-      })),
-      acts: (l.acts || []).map(a => ({ name: a.name, kcal: a.kcal || 0 }))
-    }))
-  };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'vital-phuc-' + DB.today() + '.sync.json'; a.click();
-  URL.revokeObjectURL(url);
-  toast('Đã xuất ' + logs.length + ' ngày — gửi file cho Ngọc Anh');
-}
-
-function importSync() {
-  const inp = document.createElement('input');
-  inp.type = 'file'; inp.accept = '.json';
-  inp.onchange = e => {
-    const file = e.target.files[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      try {
-        const data = JSON.parse(ev.target.result);
-        if (data.schema !== 'vital.sync.v1') { toast('File không đúng định dạng vital.sync.v1'); return; }
-        if (data.owner === 'phuc') { toast('Đây là file của chính bạn — nhập file từ Ngọc Anh'); return; }
-        localStorage.setItem('vital_sync_from_anh', JSON.stringify(data));
-        renderSyncView();
-        toast('Đã nhận ' + (data.logs || []).length + ' ngày từ ' + ((data.profile && data.profile.name) || 'Ngọc Anh'));
-      } catch (err) { toast('Lỗi đọc file: ' + err.message); }
-    };
-    reader.readAsText(file);
-  };
-  inp.click();
-}
-
-
-/* ── SYNC VIEW — Hiển thị dữ liệu Ngọc Anh ─── */
-function renderSyncView() {
-  const el = document.getElementById('sync-view-anh');
-  if (!el) return;
-  try {
-    const raw = localStorage.getItem('vital_sync_from_anh');
-    if (!raw) { el.style.display = 'none'; return; }
-    const data = JSON.parse(raw);
-    const logs = (data.logs || []).slice(-7).reverse();
-    const pName = (data.profile && data.profile.name) || 'Ngọc Anh';
-    const date7 = data.exportedAt ? data.exportedAt.slice(0, 10) : '';
-    const rows = logs.map(l => {
-      const totalKcal = (l.foods || []).reduce((s, f) => s + (f.kcal || 0) * (f.qty || 1), 0);
-      const w = l.weight ? ` · ${l.weight} kg` : '';
-      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.08)">
-        <span style="font-size:12px;opacity:.75">${l.date}${w}</span>
-        <span style="font-size:12px;font-family:var(--mono);font-weight:700;color:var(--cy)">${Math.round(totalKcal)} kcal</span></div>`;
-    }).join('');
-    el.style.display = '';
-    el.innerHTML = `<div style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;opacity:.5;font-weight:600;margin-bottom:8px">Dữ liệu của ${esc(pName)}${date7 ? ' · ' + date7 : ''}</div>` +
-      (rows || '<div style="font-size:12px;opacity:.5">Chưa có log</div>');
-  } catch(e) { el.style.display = 'none'; }
-}
-
 /* Nạp món TỰ THÊM (đã lưu) vào danh mục trong RAM để tìm lại được. */
 function loadCustomFoods() {
   if (!window.CustomFoods || !window.FOOD_DB) return;
   const have = new Set(window.FOOD_DB.map(f => f.id));
-  CustomFoods.load('phuc').forEach(f => { if (f && f.id && !have.has(f.id)) window.FOOD_DB.push(f); });
+  CustomFoods.load().forEach(f => { if (f && f.id && !have.has(f.id)) window.FOOD_DB.push(f); });
 }
 
-/* boot — chờ SQLite (sql.js) nạp xong rồi mới render từ DB thật */
-VitalSQL.init({ user: 'phuc' })
-  .then(() => { loadCustomFoods(); refresh(); renderSyncView(); })
-  .catch((e) => { console.error('Không khởi tạo được SQLite:', e); refresh(); });
+/* boot — xác thực phiên đăng nhập (Supabase), xác định đang xem dữ liệu của
+   CHÍNH MÌNH hay của ĐỐI TÁC (chế độ chỉ-xem, qua ?view=partner), rồi nạp
+   dữ liệu thật từ Supabase vào bộ nhớ trước khi render lần đầu. */
+(async function boot() {
+  const ctx = await VitalAuth.resolveViewContext('../index.html');
+  if (!ctx) return;
+  if (!ctx.readOnly && ctx.me.gender !== 'male') { window.location.href = '../N.Anh/Anh_calo.html'; return; }
+  window.VITAL_READONLY = ctx.readOnly;
+  if (ctx.readOnly) VitalAuth.mountReadOnlyBanner(ctx.ownerProfile ? ctx.ownerProfile.name : 'đối tác');
+  try {
+    await Promise.all([DB._boot(ctx.ownerId), CustomFoods._boot(ctx.ownerId)]);
+    loadCustomFoods();
+  } catch (e) {
+    console.error('VITAL: lỗi nạp dữ liệu từ Supabase', e);
+  }
+  refresh();
+})();

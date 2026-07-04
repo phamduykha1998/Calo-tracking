@@ -786,30 +786,60 @@ function addDaysStr(dateStr, n) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// DB — localStorage
+// DB — Supabase (Postgres đám mây)
 // ═══════════════════════════════════════════════════════════
-// Ruột đã đổi sang SQLite-WASM (shared/vital-sqlite.js). Dữ liệu hệ Nữ = user 'anh'.
-// Logs lưu dạng map { 'YYYY-MM-DD': log } đúng như code cũ kỳ vọng.
+// Ruột đã đổi từ SQLite-WASM sang Supabase. DB._boot(ownerId) nạp 1 LẦN lúc
+// trang mở (hồ sơ + mọi ngày của "ownerId" — chính mình, hoặc đối tác nếu
+// đang ở chế độ chỉ-xem) vào bộ nhớ RAM. loadProfile/loadLogs đọc thẳng từ
+// RAM nên VẪN ĐỒNG BỘ như trước (loadState()/refresh() không cần await).
+// Ghi (saveProfile/saveLogs) cập nhật RAM ngay rồi gửi lên Supabase ở nền.
+// Logs vẫn giữ dạng map { 'YYYY-MM-DD': log } như code cũ kỳ vọng. Chu kỳ
+// kinh nguyệt ({start,len,period}) nằm trong profile.cycle — không cần bảng
+// riêng, vì đây vốn là 1 JSON con của hồ sơ (không phải lịch sử nhiều dòng).
+var _dbOwnerId = null;
+var _dbProfile = null;
+var _dbLogsMap = {};
+function _dbSb() { return window.supabaseClient; }
+function _dbReadOnly() { return !!window.VITAL_READONLY; }
+function _dbMergeProfile(row) {
+  if (!row) return null;
+  var p = Object.assign({}, row.data || {});
+  p.name = row.name; p.gender = row.gender;
+  return p;
+}
+function _dbSplitProfile(p) {
+  var rest = Object.assign({}, p);
+  delete rest.name; delete rest.gender;
+  return { name: p.name || 'Bạn', gender: p.gender || 'female', data: rest };
+}
 var DB = {
-  loadProfile: function() {
-    var r = window.VitalSQL.get("SELECT json FROM profile WHERE user='anh'");
-    return r ? JSON.parse(r.json) : null;
+  async _boot(ownerId) {
+    _dbOwnerId = ownerId;
+    var profRes = await _dbSb().from('profiles').select('*').eq('id', ownerId).maybeSingle();
+    var logRes = await _dbSb().from('logs').select('date,data').eq('owner_id', ownerId).order('date');
+    if (profRes.error) console.error('VITAL: lỗi tải hồ sơ', profRes.error);
+    if (logRes.error) console.error('VITAL: lỗi tải nhật ký', logRes.error);
+    _dbProfile = _dbMergeProfile(profRes.data);
+    _dbLogsMap = {};
+    (logRes.data || []).forEach(function (r) { _dbLogsMap[r.date] = r.data; });
   },
+  loadProfile: function() { return _dbProfile; },
   saveProfile: function(p) {
-    window.VitalSQL.run("INSERT OR REPLACE INTO profile (user,json) VALUES ('anh',?)", [JSON.stringify(p)]);
+    _dbProfile = Object.assign({}, p);
+    if (_dbReadOnly()) return;
+    var row = _dbSplitProfile(p);
+    _dbSb().from('profiles').upsert({ id: _dbOwnerId, name: row.name, gender: row.gender, data: row.data })
+      .then(function (r) { if (r.error) console.error('VITAL: lỗi lưu hồ sơ', r.error); });
   },
-  loadLogs: function() {
-    var rows = window.VitalSQL.all("SELECT date,json FROM logs WHERE user='anh'");
-    var map = {};
-    rows.forEach(function(r) { try { map[r.date] = JSON.parse(r.json); } catch(e) {} });
-    return map;
-  },
+  loadLogs: function() { return Object.assign({}, _dbLogsMap); },
   saveLogs: function(logs) {
-    // Thay toàn bộ tập log của 'anh' (giống setItem cũ ghi đè cả khối).
-    window.VitalSQL.run("DELETE FROM logs WHERE user='anh'");
-    Object.keys(logs || {}).forEach(function(d) {
-      window.VitalSQL.run("INSERT OR REPLACE INTO logs (user,date,json) VALUES ('anh',?,?)", [d, JSON.stringify(logs[d])]);
-    });
+    _dbLogsMap = logs;
+    if (_dbReadOnly()) return;
+    var rows = Object.keys(logs || {}).map(function (d) { return { owner_id: _dbOwnerId, date: d, data: logs[d] }; });
+    if (rows.length) {
+      _dbSb().from('logs').upsert(rows, { onConflict: 'owner_id,date' })
+        .then(function (r) { if (r.error) console.error('VITAL: lỗi lưu nhật ký', r.error); });
+    }
   },
   today: function() { return todayLocal(); },
   newLog: function(date) {
@@ -1574,11 +1604,12 @@ function litem(x, i, key) {
   var name = esc(x.name || '');
   var k    = Math.round((x.kcal||0) * (x.qty||1));
   var qty  = (x.qty && x.qty !== 1) ? ' ×' + x.qty : '';
-  return '<div class="litem"><span class="l-n">' + name + qty + '</span>' +
-    '<span class="r-side"><span class="l-c">' + k + ' kcal</span>' +
+  var delBtn = _dbReadOnly() ? '' :
     '<button class="del" data-del="' + key + '" data-i="' + i + '">' +
     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">' +
-    '<path d="M6 6l12 12M18 6L6 18"/></svg></button></span></div>';
+    '<path d="M6 6l12 12M18 6L6 18"/></svg></button>';
+  return '<div class="litem"><span class="l-n">' + name + qty + '</span>' +
+    '<span class="r-side"><span class="l-c">' + k + ' kcal</span>' + delBtn + '</span></div>';
 }
 
 function renderSheetData() {
@@ -1677,7 +1708,7 @@ function renderActSearch(q) {
 // ─── CUSTOM FOODS (món tự thêm — nhớ cho lần sau) ─────────
 function loadCustomFoods() {
   if (!window.CustomFoods) return;
-  CustomFoods.load('anh').forEach(function(f) {
+  CustomFoods.load().forEach(function(f) {
     if (f && f.id && !FOOD_DB.some(function(x) { return x.id === f.id; })) FOOD_DB.push(f);
   });
 }
@@ -1690,13 +1721,14 @@ function rememberCustomFood(name, kcal, macros) {
     protein: (macros && macros.protein) || 0, carb: (macros && macros.carb) || 0,
     fat: (macros && macros.fat) || 0, fiber: (macros && macros.fiber) || 0,
     sugar: (macros && macros.sugar) || 0, qty: 1, unit: (macros && macros.unit) || 'phần' };
-  CustomFoods.save('anh', cat);
+  CustomFoods.save(cat);
   var i = FOOD_DB.findIndex(function(x) { return x.id === id; });
   if (i >= 0) FOOD_DB[i] = cat; else FOOD_DB.push(cat);
 }
 
 // ─── ADD FOOD ─────────────────────────────────────────────
 function addFood() {
+  if (_dbReadOnly()) return;
   if (S.todayLog && S.todayLog.date !== DB.today()) { loadState(); }
   var nameEl = $$('in-intake-name'), calEl = $$('in-intake-cal'), qtyEl = $$('in-intake-qty');
   var name = (nameEl && nameEl.value || '').trim();
@@ -1740,6 +1772,7 @@ function addFood() {
 
 // ─── ADD ACTIVITY ─────────────────────────────────────────
 function addActivity() {
+  if (_dbReadOnly()) return;
   if (S.todayLog && S.todayLog.date !== DB.today()) { loadState(); }
   var nameEl = $$('in-burn-name'), calEl = $$('in-burn-cal');
   var name = (nameEl && nameEl.value || '').trim();
@@ -1777,6 +1810,7 @@ document.querySelectorAll('.dot-item').forEach(function(d) {
 // SHEET
 // ═══════════════════════════════════════════════════════════
 function openSheet(tab) {
+  if (_dbReadOnly()) { showToast('Chỉ xem — không sửa được dữ liệu của đối tác'); return; }
   selectTab(tab);
   renderSheetData();
   var scrim = $$('scrim'), sheet = $$('sheet');
@@ -1844,6 +1878,7 @@ document.addEventListener('click', function(e) {
   // Delete
   var db = e.target.closest('[data-del]');
   if (db) {
+    if (_dbReadOnly()) return;
     var key = db.dataset.del, idx = +db.dataset.i;
     if (key === 'foods') (S.todayLog.foods || []).splice(idx, 1);
     else if (key === 'acts') (S.todayLog.acts || []).splice(idx, 1);
@@ -1903,6 +1938,7 @@ if (minsEl) minsEl.addEventListener('input', function(e) {
 // ─── SAVE CYCLE & BODY ────────────────────────────────────
 var saveCycleEl = $$('save-cycle');
 if (saveCycleEl) saveCycleEl.addEventListener('click', function() {
+  if (_dbReadOnly()) return;
   if (!S.profile) {
     S.profile = { name: 'Bạn', age: 25, height: 160, weight: 55, weightGoal: 52, actLevel: 'moderate', goal: 'lose_fat' };
   }
@@ -1941,6 +1977,7 @@ function saveBodyMeasurements() {
 // ─── SAVE PROFILE ─────────────────────────────────────────
 var saveProfileEl = $$('save-profile');
 if (saveProfileEl) saveProfileEl.addEventListener('click', function() {
+  if (_dbReadOnly()) return;
   var p = S.profile || {};
   var numFields = ['age','height','weight','weightGoal','deadline'];
   ['name','age','height','weight','weightGoal','deadline','actLevel','goal'].forEach(function(f) {
@@ -1995,104 +2032,32 @@ if (intakeQtyEl) intakeQtyEl.addEventListener('input', updateIntakeTotal);
 var intakeCalEl2 = $$('in-intake-cal');
 if (intakeCalEl2) intakeCalEl2.addEventListener('input', updateIntakeTotal);
 
-// ─── SYNC (vital.sync.v1) ─────────────────────────────────
-function exportSync() {
-  var logs = DB.loadLogs();
-  var logsArr = Object.values(logs).map(function(l) {
-    return {
-      date: l.date,
-      weight: l.weight || null,
-      foods: (l.foods || []).map(function(f) {
-        return { name: f.name, kcal: f.kcal || 0, protein: f.protein || 0, carb: f.carb || 0, fat: f.fat || 0, qty: f.qty || 1 };
-      }),
-      acts: (l.acts || []).map(function(a) { return { name: a.name, kcal: a.kcal || 0 }; })
-    };
-  });
-  var data = {
-    schema: 'vital.sync.v1',
-    owner: 'anh',
-    exportedAt: new Date().toISOString(),
-    profile: S.profile ? { name: S.profile.name, age: S.profile.age, height: S.profile.height, weight: S.profile.weight } : null,
-    logs: logsArr
-  };
-  var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.href = url;
-  a.download = 'vital-anh-' + DB.today() + '.sync.json';
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('Đã xuất ' + logsArr.length + ' ngày — gửi file cho Phúc');
-}
-
-function importSync() {
-  var inp = document.createElement('input');
-  inp.type = 'file'; inp.accept = '.json';
-  inp.onchange = function(e) {
-    var file = e.target.files[0]; if (!file) return;
-    var reader = new FileReader();
-    reader.onload = function(ev) {
-      try {
-        var data = JSON.parse(ev.target.result);
-        if (data.schema !== 'vital.sync.v1') { showToast('File không đúng định dạng vital.sync.v1'); return; }
-        if (data.owner === 'anh') { showToast('Đây là file của chính bạn — nhập file từ Phúc'); return; }
-        localStorage.setItem('vital_sync_from_phuc', JSON.stringify(data));
-        renderSyncView();
-        showToast('Đã nhận ' + (data.logs || []).length + ' ngày từ ' + ((data.profile && data.profile.name) || 'Phúc'));
-      } catch (err) { showToast('Lỗi đọc file: ' + err.message); }
-    };
-    reader.readAsText(file);
-  };
-  inp.click();
-}
-
-
-// ─── SYNC VIEW — Hiển thị dữ liệu Phúc ───────────────────
-function renderSyncView() {
-  var el = document.getElementById('sync-view-phuc');
-  if (!el) return;
-  try {
-    var raw = localStorage.getItem('vital_sync_from_phuc');
-    if (!raw) { el.style.display = 'none'; return; }
-    var data = JSON.parse(raw);
-    var logs = (data.logs || []).slice(-7).reverse();
-    var pName = (data.profile && data.profile.name) || 'Phúc';
-    var date7 = data.exportedAt ? data.exportedAt.slice(0, 10) : '';
-    var rows = logs.map(function(l) {
-      var totalKcal = (l.foods || []).reduce(function(s, f) { return s + (f.kcal || 0) * (f.qty || 1); }, 0);
-      var w = l.weight ? (' · ' + l.weight + ' kg') : '';
-      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)">' +
-        '<span style="font-size:12px;color:var(--plum-soft)">' + l.date + w + '</span>' +
-        '<span style="font-size:12px;font-family:var(--mono);font-weight:600;color:var(--violet-d)">' + Math.round(totalKcal) + ' kcal</span></div>';
-    }).join('');
-    el.style.display = '';
-    el.innerHTML =
-      '<div style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:10px">' +
-      'Dữ liệu của ' + esc(pName) + (date7 ? ' · ' + date7 : '') + '</div>' +
-      (rows || '<div style="font-size:12px;color:var(--muted)">Chưa có log</div>');
-  } catch(e) { el.style.display = 'none'; }
-}
-
-// ─── WINDOW EXPORTS (out of IIFE for onclick) ─────────────
-window.exportSync = exportSync;
-window.importSync = importSync;
-window.renderSyncView = renderSyncView;
-
 // ═══════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════
-// Chờ SQLite (sql.js) nạp xong rồi mới đọc dữ liệu & render.
-VitalSQL.init({ user: 'anh' }).then(function () {
-  loadCustomFoods();   // nạp món tự thêm (đã lưu) vào danh mục để tìm lại được
+// Xác thực phiên đăng nhập (Supabase), xác định đang xem dữ liệu của CHÍNH
+// MÌNH hay của ĐỐI TÁC (chế độ chỉ-xem, qua ?view=partner), rồi nạp dữ liệu
+// thật từ Supabase vào bộ nhớ trước khi render lần đầu.
+(async function boot() {
+  var ctx = await VitalAuth.resolveViewContext('../index.html');
+  if (!ctx) return;
+  if (!ctx.readOnly && ctx.me.gender !== 'female') { window.location.href = '../H.Phuc/Phuc_calo.html'; return; }
+  window.VITAL_READONLY = ctx.readOnly;
+  if (ctx.readOnly) VitalAuth.mountReadOnlyBanner(ctx.ownerProfile ? ctx.ownerProfile.name : 'đối tác');
+  try {
+    await Promise.all([DB._boot(ctx.ownerId), CustomFoods._boot(ctx.ownerId)]);
+    loadCustomFoods();   // nạp món tự thêm (đã lưu) vào danh mục để tìm lại được
+  } catch (e) {
+    console.error('VITAL: lỗi nạp dữ liệu từ Supabase', e);
+  }
   loadState();
   if (S.profile) {
     S.out = OB.build(S.profile, S.allLogs, S.todayLog);
     renderAll();
   } else {
     renderAll();
-    setTimeout(function() { openSheet('profile'); }, 700);
+    if (!ctx.readOnly) setTimeout(function() { openSheet('profile'); }, 700);
   }
-  renderSyncView();
-}).catch(function (e) { console.error('Không khởi tạo được SQLite:', e); });
+})();
 
 })();
