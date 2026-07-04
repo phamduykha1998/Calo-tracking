@@ -160,15 +160,21 @@ formRegister.addEventListener('submit', function (e) {
   var btn = document.getElementById('btnRegister');
   if (!name) { showMsg('Nhập tên hiển thị đã nhé.'); return; }
   btn.disabled = true;
-  sb().auth.signUp({ email: email, password: password })
+  // Gửi tên + giới tính kèm theo signUp (lưu vào user metadata). Hồ sơ trong
+  // bảng profiles do TRIGGER phía Supabase tự tạo (chạy bỏ qua RLS) — không
+  // tự chèn từ trình duyệt để tránh lỗi "chưa có phiên → RLS chặn".
+  sb().auth.signUp({
+    email: email,
+    password: password,
+    options: { data: { name: name, gender: regGender } }
+  })
     .then(function (res) {
-      if (res.error) { showMsg(res.error.message); return null; }
-      if (!res.data.user) { showMsg('Đăng ký thành công — kiểm tra email để xác nhận rồi quay lại đăng nhập.', 'ok'); return null; }
-      return sb().from('profiles').insert({ id: res.data.user.id, email: email, name: name, gender: regGender })
-        .then(function (insertRes) {
-          if (insertRes.error) { showMsg('Tạo tài khoản xong nhưng lưu hồ sơ lỗi: ' + insertRes.error.message); return; }
-          navigate(name, dashboardOf(regGender));
-        });
+      if (res.error) { showMsg(res.error.message); return; }
+      if (!res.data.session) {
+        showMsg('Đăng ký thành công! Nếu được yêu cầu xác nhận email thì kiểm tra hộp thư, rồi quay lại đăng nhập.', 'ok');
+        return;
+      }
+      navigate(name, dashboardOf(regGender));
     })
     .catch(function (err) { showMsg('Lỗi kết nối: ' + err.message); })
     .finally(function () { btn.disabled = false; });

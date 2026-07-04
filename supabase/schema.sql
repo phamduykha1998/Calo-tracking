@@ -162,6 +162,39 @@ create policy "custom_foods_delete_own" on public.custom_foods for delete using 
 
 
 -- ============================================================================
+--  TRIGGER TỰ TẠO HỒ SƠ khi có tài khoản mới.
+--  Lý do: lúc signUp() vừa xong, trình duyệt có thể CHƯA có phiên đăng nhập
+--  (nhất là khi bật xác nhận email) → auth.uid() = null → RLS chặn INSERT vào
+--  profiles ("new row violates row-level security policy"). Giải pháp chuẩn của
+--  Supabase: để Postgres tự chèn hồ sơ bằng hàm security definer (bỏ qua RLS),
+--  đọc tên + giới tính từ metadata mà signUp gửi kèm.
+-- ============================================================================
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, email, name, gender)
+  values (
+    new.id,
+    new.email,
+    coalesce(new.raw_user_meta_data->>'name', 'Bạn'),
+    coalesce(new.raw_user_meta_data->>'gender', 'male')
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+
+-- ============================================================================
 --  BƯỚC THỦ CÔNG SAU KHI 2 NGƯỜI ĐÃ ĐĂNG KÝ QUA TRANG WEB (chạy 1 lần):
 --  Nối "đối tác" cho nhau để mỗi người xem được (chỉ xem) trang của người kia.
 --  Thay 'EMAIL_CUA_PHUC' / 'EMAIL_CUA_NGOC_ANH' bằng email thật đã đăng ký.
