@@ -3,7 +3,7 @@
 //  Chiến lược: cache-first + cập nhật nền (lần đầu online tải gì thì lưu nấy;
 //  lần sau, kể cả mất mạng, lấy từ cache). Đổi CACHE để buộc làm mới khi nâng cấp.
 // ============================================================================
-const CACHE = 'vital-v7';
+const CACHE = 'vital-v8';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting(); // kích hoạt SW mới ngay
