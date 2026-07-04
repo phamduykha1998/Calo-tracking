@@ -68,8 +68,13 @@ function ro() { return !!window.VITAL_READONLY; }
 
 function refresh() {
   PROFILE = DB.getProfile();
-  if (!PROFILE) {
+  // Hồ sơ do trigger đăng ký tạo sẵn CHỈ có tên + giới tính — chưa có cân
+  // nặng/mục tiêu thì vẫn phải qua màn nhập thông tin lần đầu (nếu không,
+  // render sẽ crash vì thiếu số → màn hình trống).
+  var incomplete = !PROFILE || PROFILE.weight_start == null || PROFILE.weight_goal == null;
+  if (incomplete) {
     if (ro()) { $('ob').style.display = 'none'; $('p1').innerHTML = '<div style="padding:60px 20px;text-align:center;color:var(--t3)">Đối tác chưa có dữ liệu.</div>'; $('p2').innerHTML = ''; return; }
+    if (PROFILE && PROFILE.name) { var nEl = $('obName'); if (nEl) nEl.value = PROFILE.name; }
     $('ob').style.display = 'flex'; return;
   }
   $('ob').style.display = 'none';

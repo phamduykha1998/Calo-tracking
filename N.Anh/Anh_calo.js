@@ -2054,6 +2054,9 @@ if (intakeCalEl2) intakeCalEl2.addEventListener('input', updateIntakeTotal);
   if (S.profile) {
     S.out = OB.build(S.profile, S.allLogs, S.todayLog);
     renderAll();
+    // Hồ sơ do trigger đăng ký tạo sẵn chỉ có tên + giới tính — chưa có cân
+    // nặng thì mở luôn bảng Hồ sơ để điền nốt.
+    if (S.profile.weight == null && !ctx.readOnly) setTimeout(function() { openSheet('profile'); }, 700);
   } else {
     renderAll();
     if (!ctx.readOnly) setTimeout(function() { openSheet('profile'); }, 700);
